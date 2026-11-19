@@ -33,7 +33,9 @@ def resume_request(root, manifest: VolumeManifest, request: OrderRequest, *, wri
         snapshot = scan_pages(root, manifest.volume_id)
         if len(snapshot) != len(layout.all_slots):
             raise MoveSafetyError("physical layout differs from the accepted manifest")
+        # Re-verify every readable page against the accepted manifest before touching the
+        # panel, so no unverified or unknown bytes can take part in the reorder.
         originals = collect_sources(manifest, snapshot)
-        write_target_layout(root, layout, request.target, snapshot, originals, write_hook=write_hook)
+        write_target_layout(root, layout, request.target, originals, write_hook=write_hook)
     except (MoveSafetyError, PageReadError, PageWriteError) as exc:
         raise ReorderInterrupted(f"{request.volume_id!r} request {request.request_id!r}: {exc}") from exc

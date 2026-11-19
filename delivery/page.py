@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from delivery.locate import OriginalUnavailable, locate_original
+from delivery.locate import locate_original
 from delivery.provenance import DeliveryLine
 from delivery.ticket import load_ticket
 from intake.catalog import load_accepted_manifest, open_catalog
@@ -41,13 +41,11 @@ def page(root, ticket_number: int, position: int, page_size: int, *, read_hook=N
         by_id = load_accepted_manifest(db, fixed_ticket.volume_id).by_id()
     if position == end:
         return PageResult((), None)
+    # One read view per paging call.  Tickets freeze identities, not physical slots: during
+    # an interrupted reorder a wanted original may sit in the spare or a duplicated slot, so
+    # each window entry is located by its ticket identity across the whole panel.  The whole
+    # window must verify before anything is returned, keeping the caller's cursor untouched.
     snapshot = scan_pages(root, fixed_ticket.volume_id, read_hook=read_hook)
-    window = snapshot[position:end]
-    if len(window) != end - position:
-        raise OriginalUnavailable("not enough readable normal slots for the ticket window")
-    lines = []
-    for image in window:
-        if image is None or image.original_id not in by_id:
-            raise OriginalUnavailable("normal slot does not contain an accepted original")
-        lines.append(locate_original(by_id[image.original_id], (image,)))
-    return PageResult(tuple(lines), end if end < length else None)
+    window_identities = fixed_ticket.original_ids[position:end]
+    lines = tuple(locate_original(by_id[identity], snapshot) for identity in window_identities)
+    return PageResult(lines, end if end < length else None)
