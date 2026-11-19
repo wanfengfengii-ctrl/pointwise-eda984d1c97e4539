@@ -1,0 +1,9 @@
+{
+  "volume_id": "HZ-17",
+  "originals": [
+    {"original_id": "A", "origin": "海栈站/东脚/E04", "reading": 7, "payload_hex": "410007ff"},
+    {"original_id": "B", "origin": "海栈站/西脚/W02", "reading": 11, "payload_hex": "42000b0a"},
+    {"original_id": "C", "origin": "海栈站/栈台/P03", "reading": 13, "payload_hex": "43000d80"}
+  ],
+  "target": ["B", "C", "A"]
+}
